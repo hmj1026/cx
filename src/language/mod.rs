@@ -241,6 +241,19 @@ static LANGUAGES: &[LanguageConfig] = &[
         ],
         ref_node_types: &["simple_identifier", "type_identifier"],
     },
+    LanguageConfig {
+        name: "php",
+        extensions: &["php"],
+        grammar_override: &[],
+        download_names: &[],
+        query: queries::PHP,
+        sig_body_child: Some("compound_statement"),
+        sig_delimiter: None,
+        kind_overrides: &[
+            ("definition.class", "trait_declaration", SymbolKind::Trait),
+        ],
+        ref_node_types: &["name", "variable_name", "qualified_name"],
+    },
 ];
 
 // --- Errors ---

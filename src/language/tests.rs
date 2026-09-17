@@ -1435,3 +1435,65 @@ fn bash_top_level_var() {
         "local vars should not be captured"
     );
 }
+
+// --- PHP ---
+
+#[test]
+fn php_function() {
+    let src = "<?php\nfunction greet($name) {\n    return 'Hello ' . $name;\n}";
+    let syms = extract("php", src, "test.php");
+    assert_eq!(syms.len(), 1, "should find function: {:?}", syms);
+    assert_eq!(syms[0].name, "greet");
+    assert_eq!(syms[0].kind, SymbolKind::Fn);
+}
+
+#[test]
+fn php_class_and_method() {
+    let src = "<?php\nclass UserService {\n    public function getName() {\n        return 'test';\n    }\n}";
+    let syms = extract("php", src, "test.php");
+    let class = syms.iter().find(|s| s.name == "UserService");
+    assert!(class.is_some(), "should find class: {:?}", syms);
+    assert_eq!(class.unwrap().kind, SymbolKind::Class);
+    let method = syms.iter().find(|s| s.name == "getName");
+    assert!(method.is_some(), "should find method: {:?}", syms);
+    assert_eq!(method.unwrap().kind, SymbolKind::Fn);
+}
+
+#[test]
+fn php_interface() {
+    let src = "<?php\ninterface Loggable {\n    public function log($msg);\n}";
+    let syms = extract("php", src, "test.php");
+    let iface = syms.iter().find(|s| s.name == "Loggable");
+    assert!(iface.is_some(), "should find interface: {:?}", syms);
+    assert_eq!(iface.unwrap().kind, SymbolKind::Interface);
+}
+
+#[test]
+fn php_trait() {
+    let src = "<?php\ntrait Cacheable {\n    public function cache() {}\n}";
+    let syms = extract("php", src, "test.php");
+    let tr = syms.iter().find(|s| s.name == "Cacheable");
+    assert!(tr.is_some(), "should find trait: {:?}", syms);
+    assert_eq!(tr.unwrap().kind, SymbolKind::Trait);
+}
+
+#[test]
+fn php_constant() {
+    let src = "<?php\nconst MAX_RETRY = 3;";
+    let syms = extract("php", src, "test.php");
+    let c = syms.iter().find(|s| s.name == "MAX_RETRY");
+    assert!(c.is_some(), "should find constant: {:?}", syms);
+    assert_eq!(c.unwrap().kind, SymbolKind::Const);
+}
+
+#[test]
+fn php_signature() {
+    let src = "<?php\npublic function calculate($amount, $tax) {\n    return $amount + $tax;\n}";
+    let syms = extract("php", src, "test.php");
+    let func = syms.iter().find(|s| s.name == "calculate");
+    assert!(func.is_some(), "should find function: {:?}", syms);
+    let sig = &func.unwrap().signature;
+    assert!(sig.contains("$amount"), "signature should contain params: {}", sig);
+    assert!(!sig.contains("return"), "signature should not contain body: {}", sig);
+}
+
