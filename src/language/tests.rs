@@ -1488,7 +1488,7 @@ fn php_constant() {
 
 #[test]
 fn php_signature() {
-    let src = "<?php\npublic function calculate($amount, $tax) {\n    return $amount + $tax;\n}";
+    let src = "<?php\nfunction calculate($amount, $tax) {\n    return $amount + $tax;\n}";
     let syms = extract("php", src, "test.php");
     let func = syms.iter().find(|s| s.name == "calculate");
     assert!(func.is_some(), "should find function: {:?}", syms);
@@ -1497,3 +1497,10 @@ fn php_signature() {
     assert!(!sig.contains("return"), "signature should not contain body: {}", sig);
 }
 
+#[test]
+fn php_namespace_and_enum() {
+    let src = "<?php\nnamespace App\\Status;\nenum State: string { case Ready = 'ready'; }";
+    let syms = extract("php", src, "test.php");
+    assert!(syms.iter().any(|s| s.name == "App\\Status" && s.kind == SymbolKind::Module), "{syms:?}");
+    assert!(syms.iter().any(|s| s.name == "State" && s.kind == SymbolKind::Enum), "{syms:?}");
+}
