@@ -251,9 +251,10 @@ fn build_signature(config: &LanguageConfig, node: Node, source: &[u8]) -> String
 
     // Strategy 1: find body child node, take text before it
     if let Some(body_kind) = config.sig_body_child {
+        let body_field = node.child_by_field_name(body_kind);
         let mut walker = node.walk();
         for child in node.children(&mut walker) {
-            if child.kind() == body_kind {
+            if child.kind() == body_kind || Some(child) == body_field {
                 let sig_text = &source[start..child.start_byte()];
                 let sig = String::from_utf8_lossy(sig_text)
                     .trim()

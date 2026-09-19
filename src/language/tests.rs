@@ -1504,3 +1504,33 @@ fn php_namespace_and_enum() {
     assert!(syms.iter().any(|s| s.name == "App\\Status" && s.kind == SymbolKind::Module), "{syms:?}");
     assert!(syms.iter().any(|s| s.name == "State" && s.kind == SymbolKind::Enum), "{syms:?}");
 }
+
+#[test]
+fn php_declaration_signatures_exclude_bodies() {
+    for (declaration, signature) in [
+        ("class Example\n    extends Base\n    implements First, Second\n{ public function run() {} }", "class Example\n    extends Base\n    implements First, Second"),
+        ("interface Example { public function run(); }", "interface Example"),
+        ("trait Example { public function run() {} }", "trait Example"),
+        ("enum Example: string { case Ready = 'ready'; }", "enum Example: string"),
+        ("function Example($value = '{') { return $value; }", "function Example($value = '{')"),
+        ("const Example = '{';", "Example = '{'"),
+    ] {
+        let syms = extract("php", &format!("<?php\n{declaration}"), "test.php");
+        let symbol = syms.iter().find(|s| s.name == "Example").unwrap();
+        assert_eq!(symbol.signature, signature, "{declaration}");
+    }
+}
+
+#[test]
+fn refs_php_compound_identifiers() {
+    init_grammar_cache();
+    let src = "<?php\nnamespace App\\Status;\nuse App\\Status;\n$state = new App\\Status\\State();\necho $state;";
+    for (name, lines) in [
+        ("App\\Status", vec![2, 3, 4]),
+        ("App\\Status\\State", vec![4]),
+        ("$state", vec![4, 5]),
+    ] {
+        let refs = find_references("php", src.as_bytes(), &PathBuf::from("test.php"), name).unwrap();
+        assert_eq!(refs.iter().map(|r| r.line).collect::<Vec<_>>(), lines, "{name}");
+    }
+}

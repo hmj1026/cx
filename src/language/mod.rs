@@ -22,7 +22,7 @@ pub struct LanguageConfig {
     /// Names to pass to `tree_sitter_language_pack::download()`. Empty = use name.
     pub download_names: &'static [&'static str],
     pub query: &'static str,
-    /// Find this child node kind to determine where the body starts; signature = text before it.
+    /// Find this child node kind or field name; signature = text before the body.
     pub sig_body_child: Option<&'static str>,
     /// Scan for this byte to split signature from body (e.g. b'{').
     pub sig_delimiter: Option<u8>,
@@ -247,12 +247,12 @@ static LANGUAGES: &[LanguageConfig] = &[
         grammar_override: &[],
         download_names: &[],
         query: queries::PHP,
-        sig_body_child: Some("compound_statement"),
+        sig_body_child: Some("body"),
         sig_delimiter: None,
         kind_overrides: &[
             ("definition.class", "trait_declaration", SymbolKind::Trait),
         ],
-        ref_node_types: &["name", "variable_name", "qualified_name"],
+        ref_node_types: &["name", "variable_name", "qualified_name", "namespace_name"],
     },
 ];
 
@@ -348,8 +348,7 @@ pub fn find_references(lang: &str, source: &[u8], path: &Path, name: &str) -> Re
     let mut refs = Vec::new();
     let mut stack = vec![tree.root_node()];
     while let Some(node) = stack.pop() {
-        if node.child_count() == 0
-            && config.ref_node_types.contains(&node.kind())
+        if config.ref_node_types.contains(&node.kind())
             && node.utf8_text(source).ok() == Some(name)
         {
             refs.push(extract::Reference {
